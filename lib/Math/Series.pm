@@ -1,7 +1,7 @@
 
 =head1 NAME
 
-Math::Series - Perl extension dealing with mathematic sequences
+Math::Series - Perl extension dealing with mathematic series
 
 =head1 SYNOPSIS
 
@@ -56,7 +56,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 
 use Carp;
 
@@ -169,10 +169,10 @@ sub new {
 
     croak "Invalid number of arguments to Math::Series->new()."
       if @_ % 2;
-    
-    my %args = @_;
+
+    my %args    = @_;
     my $formula = $args{formula};
-    
+
     croak "Math::Series->new() requires a formula parameter."
       if not defined $formula;
 
@@ -196,9 +196,9 @@ sub new {
     $cached = $args{cached} if exists $args{cached};
 
     my $start_index = $args{start_index};
-    
+
     $start_index = 0 if not defined $start_index;
-    
+
     my $self = {
         cached        => $cached,
         var           => $variable,
@@ -206,8 +206,8 @@ sub new {
         current       => $start_index,
         current_value => $start,
         cache         => [$start],
-	iter_var      => $iter_var,
-	start_index   => $start_index,
+        iter_var      => $iter_var,
+        start_index   => $start_index,
     };
     return bless $self => $class;
 }
@@ -228,23 +228,27 @@ sub next {
     my $start_index   = $self->{start_index};
 
     if ( $self->{cached}
-	  and defined $self->{cache}[$next_index - $start_index] ) {
-        $self->{current_value} = $self->{cache}[$next_index - $start_index];
+        and defined $self->{cache}[ $next_index - $start_index ] )
+    {
+        $self->{current_value} = $self->{cache}[ $next_index - $start_index ];
         $self->{current}       = $next_index;
         return $current_value;
     }
 
     my $next_value = $current_value->new();
-    my $add = $self->{formula}->new();
-    $add->implement( $self->{var} => $current_value,
-	    	     $self->{iter_var} => $current_index+1 );
+    my $add        = $self->{formula}->new();
+    $add->implement(
+        $self->{var}      => $current_value,
+        $self->{iter_var} => $current_index + 1
+    );
     $add = $add->simplify();
     $next_value += $add;
     $next_value = $next_value->simplify();
 
-    $self->{cache}[$next_index-$start_index] = $next_value if $self->{cached};
-    $self->{current}                         = $next_index;
-    $self->{current_value}                   = $next_value;
+    $self->{cache}[ $next_index - $start_index ] = $next_value
+      if $self->{cached};
+    $self->{current}       = $next_index;
+    $self->{current_value} = $next_value;
 
     return $current_value;
 }
@@ -263,7 +267,6 @@ true, caching will be enabled. If it is false, caching will be disabled.
 
 # cached inherited.
 
-
 =item current_index()
 
 Returns the index of the current element. That is, the index of the element
@@ -281,7 +284,7 @@ sub current_index {
     my $self = shift;
     if ( @_ and defined $_[0] ) {
         my $index = shift;
-	return undef if $index < $self->{start_index};
+        return undef if $index < $self->{start_index};
         $self->{current_value} = $self->at_index($index);
         $self->{current}       = $index;
         return $index;
@@ -290,7 +293,6 @@ sub current_index {
         return $self->{current};
     }
 }
-
 
 =item at_index()
 
@@ -310,9 +312,9 @@ sub at_index {
     my $start_index = $self->{start_index};
     return undef if $index < $start_index;
 
-    return $self->{cache}[$index - $start_index]
+    return $self->{cache}[ $index - $start_index ]
       if $self->{cached}
-      and defined $self->{cache}[$index - $start_index];
+      and defined $self->{cache}[ $index - $start_index ];
 
     if ( $self->{cached} ) {
         if ( $index - $start_index > $#{ $self->{cache} } ) {
@@ -320,14 +322,15 @@ sub at_index {
             $self->next() for 1 .. $index - $self->{current};
             my $value = $self->{current_value};
             $self->{current}       = $old_index;
-            $self->{current_value} = $self->{cache}[$old_index - $start_index];
+            $self->{current_value} =
+              $self->{cache}[ $old_index - $start_index ];
             return $value;
         }
         else {
-            return $self->{cache}[$index - $start_index]
-              if defined $self->{cache}[$index - $start_index];
+            return $self->{cache}[ $index - $start_index ]
+              if defined $self->{cache}[ $index - $start_index ];
             my $last_defined = $index;
-            while ( not defined $self->{cache}[$last_defined - $start_index]
+            while ( not defined $self->{cache}[ $last_defined - $start_index ]
                 and $last_defined >= $start_index )
             {
                 $last_defined--;
@@ -335,16 +338,18 @@ sub at_index {
             die "Sanity check!" if $last_defined < $start_index;
             my $old_index = $self->{current};
             $self->{current}       = $last_defined;
-            $self->{current_value} = $self->{cache}[$last_defined-$start_index];
+            $self->{current_value} =
+              $self->{cache}[ $last_defined - $start_index ];
             $self->next() for 1 .. $index - $last_defined;
             my $value = $self->{current_value};
             $self->{current}       = $old_index;
-            $self->{current_value} = $self->{cache}[$old_index - $start_index];
+            $self->{current_value} =
+              $self->{cache}[ $old_index - $start_index ];
             return $value;
         }
     }
     else {    # not $self->{cached}
-        return $self->{current_value} if $index  == $self->{current};
+        return $self->{current_value} if $index == $self->{current};
         my $old_index = $self->{current};
         my $old_value = $self->{current_value};
         my $value;
@@ -364,7 +369,6 @@ sub at_index {
     }
 }
 
-
 =item back()
 
 This methods returns the series element previously returned by the next()
@@ -383,7 +387,7 @@ sub back {
     my $current_index = $self->{current};
     my $current_value = $self->{current_value};
     my $prev_index    = $current_index - 1;
-    my $start_index = $self->{start_index};
+    my $start_index   = $self->{start_index};
     return undef if $prev_index < $start_index;
 
     carp "Use of the back() method on uncached series is not advised."
@@ -391,8 +395,9 @@ sub back {
       and $Math::Series::warnings;
 
     if ( $self->{cached}
-	 and defined $self->{cache}[$prev_index - $start_index] ) {
-        $self->{current_value} = $self->{cache}[$prev_index - $start_index];
+        and defined $self->{cache}[ $prev_index - $start_index ] )
+    {
+        $self->{current_value} = $self->{cache}[ $prev_index - $start_index ];
         $self->{current}       = $prev_index;
         return $self->{current_value};
     }

@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: Math-Series
-version: 1.00
+version: 1.01
 abstract: Perl extension dealing with mathematic series
 license: perl
 distribution_type: module
